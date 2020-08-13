@@ -6,20 +6,27 @@
         >
             <div :key="el.key"
                   v-for="el in file.val"
-                  @click="squareClick(el.num, file.num, !el.val)"
+                  @click="squareClick(el.num, file.num)"
                   :class="{
                       'board-element': true,
-                      'filled': el.val,
+                      'filled': el.val !== boardElementValues.EMPTY,
+                      'tetraminos': el.val === boardElementValues.TETRAMINOS,
                   }"
             ></div>
         </div>
+
+        <button
+                @click="inputTetraminos"
+        >
+            Tetraminos
+        </button>
     </div>
 </template>
 
 <script lang="ts">
     import { Component, Vue } from 'vue-property-decorator';
     import {namespace} from "vuex-class";
-    import {BoardCoordinates, BoardFile} from '@/interfaces/board';
+    import {BoardCoordinates, BoardElementValues, BoardFile} from '@/interfaces/board';
 
     const boardModule = namespace('board');
 
@@ -30,9 +37,17 @@
     })
     export default class Board extends Vue {
         private searchValue = '';
+        private boardElementValues = {
+            TETRAMINOS: BoardElementValues.TETRAMINOS,
+            FILLED: BoardElementValues.FILLED,
+            EMPTY: BoardElementValues.EMPTY,
+        };
 
         @boardModule.Getter('getBoard')
         getBoard!: BoardFile[];
+
+        @boardModule.Action('inputTetraminos')
+        inputTetraminos!: () => void;
 
         @boardModule.Action('colorBoardElement')
         colorBoardElement!: ({ x, y, val}: BoardCoordinates) => void;
@@ -44,8 +59,8 @@
             setInterval(() => this.induceGravity(), 1000)
         }
 
-        private squareClick(x: number, y: number, val: boolean) {
-            this.colorBoardElement({x, y, val});
+        private squareClick(x: number, y: number) {
+            this.colorBoardElement({x, y, val: this.boardElementValues.FILLED});
         }
     }
 </script>
@@ -68,6 +83,10 @@
 
                 &.filled{
                     background-color: #747cff;
+                }
+
+                &.tetraminos{
+                    background-color: #00a88a;
                 }
             }
         }

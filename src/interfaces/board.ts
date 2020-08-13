@@ -1,7 +1,14 @@
 import {Commit, Dispatch} from "vuex";
+import {Tetraminos} from "@/interfaces/tetraminos";
+
+export enum BoardElementValues {
+    TETRAMINOS = 0,
+    FILLED,
+    EMPTY,
+}
 
 export interface BoardElement {
-    val: boolean;
+    val: BoardElementValues;
     num: number;
     key: string|number;
 }
@@ -14,6 +21,9 @@ export interface BoardFile {
 
 export interface BoardStore {
     board: BoardFile[];
+    currentTetraminos: Tetraminos;
+    nextTetraminos: Tetraminos[];
+    score: number;
 }
 
 export interface ActionsSignature<T> {
@@ -25,6 +35,7 @@ export interface ActionsSignature<T> {
 export interface BoardCoordinates {
     x: number,
     y: number,
-    val: boolean,
+    val: BoardElementValues,
 }
+
 

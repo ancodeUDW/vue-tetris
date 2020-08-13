@@ -1,31 +1,32 @@
 import Vue from 'vue';
-import { v4 as uuidv4 } from 'uuid';
-import {ActionsSignature, BoardCoordinates, BoardElement, BoardFile, BoardStore} from "@/interfaces/board";
+import {v4 as uuidv4} from 'uuid';
+import {
+  ActionsSignature,
+  BoardCoordinates,
+  BoardElement,
+  BoardElementValues,
+  BoardFile,
+  BoardStore
+} from "@/interfaces/board";
+import {getBoardElement, getBoardHeight, getBoardLineLength} from "@/services/boardUtilities";
+import {Tetraminos} from "@/interfaces/tetraminos";
+import {getAnotherTetraminos} from "@/constants/tetraminos";
 
-const getBoardLine = (state: BoardStore, y: number): BoardFile => {
-  return state.board[y];
-};
-
-const getBoardLineVal = (state: BoardStore, y: number): BoardElement[] => {
-  return getBoardLine(state, y).val;
-};
-
-const getBoardElement = (state: BoardStore, y: number, x: number): BoardElement => {
-  return getBoardLine(state, y).val[x];
-};
-
-const getBoardLineLength = (state: BoardStore, y: number): number => {
-  return getBoardLineVal(state, y).length;
-};
-
-const getBoardHeight = (state: BoardStore): number => {
-  return state.board.length;
-};
-
-
-const initialState = () => {
+const nextTetraminos = (): Tetraminos => {
   return {
-    board: [],
+    el1: { x: 0, y: 1, val: BoardElementValues.TETRAMINOS},
+    el2: { x: 0, y: 2, val: BoardElementValues.TETRAMINOS},
+    el3: { x: 1, y: 1, val: BoardElementValues.TETRAMINOS},
+    class: 'tetraminos-1'
+  }
+};
+
+const initialState = (): BoardStore => {
+  return {
+    board: [] as BoardFile[],
+    currentTetraminos: nextTetraminos(),
+    nextTetraminos: [],
+    score: 0,
   };
 };
 
@@ -38,7 +39,7 @@ const createFile = (width: number, num: number): BoardFile => {
 
   for (let i = 0; i < width; i = i +  1) {
     myFile.val.push({
-      val: false,
+      val: BoardElementValues.EMPTY,
       key: uuidv4(),
       num: i,
     });
@@ -74,6 +75,45 @@ const actions = {
     commit('init', board);
   },
 
+  inputTetraminos({dispatch, state}: ActionsSignature<BoardStore>) {
+      // const myTetraminos = nextTetraminos();
+      const myTetraminos = getAnotherTetraminos();
+
+      const originalTetraminos: BoardCoordinates = {
+        x: Math.abs(getters.getBoardWidth(state) / 2),
+        y: 1,
+        val: BoardElementValues.TETRAMINOS,
+      };
+
+      const el1: BoardCoordinates = {
+        x: originalTetraminos.x + myTetraminos.el1.x,
+        y: originalTetraminos.y + myTetraminos.el1.y,
+        val: BoardElementValues.TETRAMINOS,
+      };
+
+      const el2: BoardCoordinates = {
+        x: originalTetraminos.x + myTetraminos.el2.x,
+        y: originalTetraminos.y + myTetraminos.el2.y,
+        val: BoardElementValues.TETRAMINOS,
+      };
+
+
+      const el3: BoardCoordinates = {
+        x: originalTetraminos.x + myTetraminos.el3.x,
+        y: originalTetraminos.y + myTetraminos.el3.y,
+        val: BoardElementValues.TETRAMINOS,
+      };
+
+      console.log({originalTetraminos, el1, el2, el3, myTetraminos})
+
+      return Promise.all([
+          dispatch('colorBoardElement', originalTetraminos),
+          dispatch('colorBoardElement', el1),
+          dispatch('colorBoardElement', el2),
+          dispatch('colorBoardElement', el3),
+      ]);
+  },
+
   colorBoardElement({commit, state}: ActionsSignature<BoardStore>, { x, y, val}: BoardCoordinates) {
     if (x >= 0 &&
         y >= 0 &&
@@ -89,7 +129,7 @@ const actions = {
     if (getBoardHeight(state) > 1) {
       for (let y = getBoardHeight(state) - 2; y >= 0; y = y - 1){
         for (let x = 0; x < getBoardLineLength(state, y); x = x + 1) {
-          if (getBoardElement(state, y, x).val) {
+          if (getBoardElement(state, y, x).val !== BoardElementValues.EMPTY) {
             promiseArray.push(dispatch('induceGravityInBlock', {x, y, val: true}));
           }
         }
@@ -102,9 +142,10 @@ const actions = {
 
   induceGravityInBlock({commit, dispatch, state}: ActionsSignature<BoardStore>, {x, y, val}: BoardCoordinates) {
     const myEl = getBoardElement(state, y + 1, x);
-    if(myEl && !myEl.val){
-      commit('colorBoardElement', {x, y, val: false});
-      commit('colorBoardElement', {x, y: y + 1, val: true});
+
+    if(myEl && myEl.val === BoardElementValues.EMPTY){
+      commit('colorBoardElement', {x, y, val: BoardElementValues.EMPTY});
+      commit('colorBoardElement', {x, y: y + 1, val: BoardElementValues.FILLED});
     }
   },
 
@@ -117,7 +158,7 @@ const actions = {
       for (let x = 0; x < getBoardLineLength(state, y); x = x + 1) {
         const myElement: BoardElement = getBoardElement(state, y, x);
 
-        if (myElement.val) {
+        if (myElement.val === BoardElementValues.FILLED) {
           lineValue = lineValue + 1;
         }
       }
@@ -132,7 +173,7 @@ const actions = {
   },
 
   clearAllLine({commit, state}: ActionsSignature<BoardStore>, y: number){
-    const val = false;
+    const val = BoardElementValues.EMPTY;
 
     for (let x = 0; x < getBoardLineLength(state, y); x = x + 1) {
       commit('colorBoardElement', {x, y, val})
@@ -153,9 +194,6 @@ const mutations = {
     board[y].val[x].val = val;
     Vue.set(state, 'board', board);
   },
-
-
-
 };
 
 export default {
