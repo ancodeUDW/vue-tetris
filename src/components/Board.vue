@@ -55,12 +55,17 @@
         @boardModule.Action('induceGravity')
         induceGravity!: () => Promise<number>;
 
+        @boardModule.Action('induceTime')
+        induceTime!: () => Promise<number>;
+
         created() {
-            setInterval(() => this.induceGravity(), 1000)
+            setInterval(() => this.induceTime(), 500)
         }
 
         private squareClick(x: number, y: number) {
-            this.colorBoardElement({x, y, val: this.boardElementValues.FILLED});
+            x = y + 1;
+            // this.induceTime();
+            // this.colorBoardElement({x, y, val: this.boardElementValues.FILLED});
         }
     }
 </script>

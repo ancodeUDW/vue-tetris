@@ -1,31 +1,27 @@
 import Vue from 'vue';
 import {v4 as uuidv4} from 'uuid';
+import * as R from 'ramda';
 import {
   ActionsSignature,
   BoardCoordinates,
   BoardElement,
   BoardElementValues,
   BoardFile,
-  BoardStore
+  BoardStore,
+  tetraminosAngle
 } from "@/interfaces/board";
-import {getBoardElement, getBoardHeight, getBoardLineLength} from "@/services/boardUtilities";
-import {Tetraminos} from "@/interfaces/tetraminos";
+import {isBottomCollision, getBoardElement, getBoardHeight, getBoardLineLength} from "@/services/boardUtilities";
+import {Tetraminos, tetraminosAngleMultiplier} from "@/interfaces/tetraminos";
 import {getAnotherTetraminos} from "@/constants/tetraminos";
-
-const nextTetraminos = (): Tetraminos => {
-  return {
-    el1: { x: 0, y: 1, val: BoardElementValues.TETRAMINOS},
-    el2: { x: 0, y: 2, val: BoardElementValues.TETRAMINOS},
-    el3: { x: 1, y: 1, val: BoardElementValues.TETRAMINOS},
-    class: 'tetraminos-1'
-  }
-};
+import Board from "@/components/Board.vue";
 
 const initialState = (): BoardStore => {
   return {
     board: [] as BoardFile[],
-    currentTetraminos: nextTetraminos(),
-    nextTetraminos: [],
+    currentTetraminos: getAnotherTetraminos(),
+    currentTetraminosAngle: tetraminosAngle._0,
+    currentTetraminosCoordinates: {x: 0, y: 0, val: BoardElementValues.TETRAMINOS},
+    nextTetraminos: [getAnotherTetraminos()],
     score: 0,
   };
 };
@@ -62,8 +58,56 @@ const getters = {
   },
 };
 
+// const modifyTetraminos = ({state, commit, dispatch }:  ActionsSignature<BoardStore>, transformFunction: (myCord: BoardCoordinates) => BoardCoordinates ) => {
+//   const {currentTetraminosCoordinates, currentTetraminosAngle, currentTetraminos} = state;
+//   const angleMultiplier = tetraminosAngleMultiplier[currentTetraminosAngle];
+//
+//   const induceGravityInBlock = (myCord: BoardCoordinates): BoardCoordinates => ({
+//     x: myCord.x,
+//     y:  myCord.y + 1,
+//     val: myCord.val,
+//   });
+//
+//   const getRotateBlock = (myCord: BoardCoordinates): BoardCoordinates => ({
+//     x: (currentTetraminosCoordinates.x + myCord.x) * angleMultiplier.x,
+//     y: (currentTetraminosCoordinates.y + myCord.y) * angleMultiplier.y,
+//     val: currentTetraminos.el1.val,
+//   });
+//
+//   // original tetraminos to clear
+//   const tetraminosToClear: BoardCoordinates[] = [
+//     currentTetraminosCoordinates,
+//     getRotateBlock(currentTetraminos.el1),
+//     getRotateBlock(currentTetraminos.el2),
+//     getRotateBlock(currentTetraminos.el3),
+//   ];
+//
+//   const tetraminosToPrint: BoardCoordinates[] = [
+//     induceGravityInBlock(tetraminosToClear[0]),
+//     induceGravityInBlock(tetraminosToClear[1]),
+//     induceGravityInBlock(tetraminosToClear[2]),
+//     induceGravityInBlock(tetraminosToClear[3]),
+//   ];
+//
+//   if (isBottomCollision(state, tetraminosToPrint)) {
+//     commit("solidifyAndRenewTetraminos", {tetraminosToSolidify: tetraminosToClear, next: getAnotherTetraminos()});
+//   } else {
+//     commit("updateTetraminos", {
+//       tetraminosToClear,
+//       tetraminosToPrint,
+//       currentTetraminosCoordinates: {
+//         x: currentTetraminosCoordinates.x,
+//         y: currentTetraminosCoordinates.y + 1,
+//         val: currentTetraminosCoordinates.val,
+//       },
+//     });
+//
+//     return dispatch('cleanFullLines');
+//   }
+// };
+
 const actions = {
-  init({commit}: ActionsSignature<BoardStore>,
+  init({commit, dispatch}: ActionsSignature<BoardStore>,
        {width, height}: {width: number; height: number}) {
 
     const board: BoardFile[] = [];
@@ -72,46 +116,9 @@ const actions = {
         board.push(createFile(width, i));
     }
 
-    commit('init', board);
-  },
+    commit('init', {board, width});
 
-  inputTetraminos({dispatch, state}: ActionsSignature<BoardStore>) {
-      // const myTetraminos = nextTetraminos();
-      const myTetraminos = getAnotherTetraminos();
-
-      const originalTetraminos: BoardCoordinates = {
-        x: Math.abs(getters.getBoardWidth(state) / 2),
-        y: 1,
-        val: BoardElementValues.TETRAMINOS,
-      };
-
-      const el1: BoardCoordinates = {
-        x: originalTetraminos.x + myTetraminos.el1.x,
-        y: originalTetraminos.y + myTetraminos.el1.y,
-        val: BoardElementValues.TETRAMINOS,
-      };
-
-      const el2: BoardCoordinates = {
-        x: originalTetraminos.x + myTetraminos.el2.x,
-        y: originalTetraminos.y + myTetraminos.el2.y,
-        val: BoardElementValues.TETRAMINOS,
-      };
-
-
-      const el3: BoardCoordinates = {
-        x: originalTetraminos.x + myTetraminos.el3.x,
-        y: originalTetraminos.y + myTetraminos.el3.y,
-        val: BoardElementValues.TETRAMINOS,
-      };
-
-      console.log({originalTetraminos, el1, el2, el3, myTetraminos})
-
-      return Promise.all([
-          dispatch('colorBoardElement', originalTetraminos),
-          dispatch('colorBoardElement', el1),
-          dispatch('colorBoardElement', el2),
-          dispatch('colorBoardElement', el3),
-      ]);
+    dispatch("timeZero");
   },
 
   colorBoardElement({commit, state}: ActionsSignature<BoardStore>, { x, y, val}: BoardCoordinates) {
@@ -120,6 +127,88 @@ const actions = {
         state.board.length > y &&
         state.board[y].val.length > x) {
       commit('colorBoardElement', {x, y, val})
+    }
+  },
+
+  timeZero({commit, dispatch, state}: ActionsSignature<BoardStore>) {
+    const {currentTetraminosCoordinates, currentTetraminosAngle, currentTetraminos} = state;
+    const angleMultiplier = tetraminosAngleMultiplier[currentTetraminosAngle];
+
+    const getRotateBlock = (myCord: BoardCoordinates): BoardCoordinates => ({
+      x: (currentTetraminosCoordinates.x + myCord.x) * angleMultiplier.x,
+      y: (currentTetraminosCoordinates.y + myCord.y) * angleMultiplier.y,
+      val: currentTetraminos.el1.val,
+    });
+
+    // original tetraminos to clear
+    const tetraminosToPrint: BoardCoordinates[] = [
+      currentTetraminosCoordinates,
+      getRotateBlock(currentTetraminos.el1),
+      getRotateBlock(currentTetraminos.el2),
+      getRotateBlock(currentTetraminos.el3),
+    ];
+
+    commit("updateTetraminos", {
+      tetraminosToClear: [],
+      tetraminosToPrint,
+      currentTetraminosCoordinates: {
+        x: currentTetraminosCoordinates.x,
+        y: currentTetraminosCoordinates.y + 1,
+        val: currentTetraminosCoordinates.val,
+      },
+    });
+  },
+
+  //
+  // rotateTetraminos({commit, dispatch, state}: ActionsSignature<BoardStore>) {
+  //
+  // },
+
+  induceTime({commit, dispatch, state}: ActionsSignature<BoardStore>) {
+    const {currentTetraminosCoordinates, currentTetraminosAngle, currentTetraminos} = state;
+    const angleMultiplier = tetraminosAngleMultiplier[currentTetraminosAngle];
+
+    const induceGravityInBlock = (myCord: BoardCoordinates): BoardCoordinates => ({
+      x: myCord.x,
+      y:  myCord.y + 1,
+      val: myCord.val,
+    });
+
+    const getRotateBlock = (myCord: BoardCoordinates): BoardCoordinates => ({
+      x: (currentTetraminosCoordinates.x + myCord.x) * angleMultiplier.x,
+      y: (currentTetraminosCoordinates.y + myCord.y) * angleMultiplier.y,
+      val: currentTetraminos.el1.val,
+    });
+
+    // original tetraminos to clear
+    const tetraminosToClear: BoardCoordinates[] = [
+      currentTetraminosCoordinates,
+      getRotateBlock(currentTetraminos.el1),
+      getRotateBlock(currentTetraminos.el2),
+      getRotateBlock(currentTetraminos.el3),
+    ];
+
+    const tetraminosToPrint: BoardCoordinates[] = [
+      induceGravityInBlock(tetraminosToClear[0]),
+      induceGravityInBlock(tetraminosToClear[1]),
+      induceGravityInBlock(tetraminosToClear[2]),
+      induceGravityInBlock(tetraminosToClear[3]),
+    ];
+
+    if (isBottomCollision(state, tetraminosToPrint)) {
+      commit("solidifyAndRenewTetraminos", {tetraminosToSolidify: tetraminosToClear, next: getAnotherTetraminos()});
+    } else {
+      commit("updateTetraminos", {
+        tetraminosToClear,
+        tetraminosToPrint,
+        currentTetraminosCoordinates: {
+          x: currentTetraminosCoordinates.x,
+          y: currentTetraminosCoordinates.y + 1,
+          val: currentTetraminosCoordinates.val,
+        },
+      });
+
+      return dispatch('cleanFullLines');
     }
   },
 
@@ -172,21 +261,45 @@ const actions = {
     return Promise.all(promiseArray)
   },
 
-  clearAllLine({commit, state}: ActionsSignature<BoardStore>, y: number){
+  clearAllLine({commit, state}: ActionsSignature<BoardStore>, y: number) {
     const val = BoardElementValues.EMPTY;
 
     for (let x = 0; x < getBoardLineLength(state, y); x = x + 1) {
       commit('colorBoardElement', {x, y, val})
     }
-  }
+  },
+
 };
 
+interface InitInterface {
+  board: BoardFile[];
+  width: number;
+}
+
+interface SolidifyRenewInterface {
+  next: Tetraminos;
+  tetraminosToSolidify: BoardCoordinates[];
+}
+
+interface UpdateTetraminosInterface {
+  tetraminosToClear: BoardCoordinates[];
+  tetraminosToPrint: BoardCoordinates[];
+  currentTetraminosCoordinates: BoardCoordinates;
+}
 
 
 const mutations = {
 
-  init(state: BoardStore, board: BoardElement[][]) {
+  init(state: BoardStore, {board, width}: InitInterface) {
+    const originalTetraminos: BoardCoordinates = {
+      x: Math.abs(width / 2),
+      y: 0,
+      val: BoardElementValues.TETRAMINOS,
+    };
+
+    Vue.set(state, 'currentTetraminosCoordinates', originalTetraminos);
     Vue.set(state, 'board', board);
+
   },
 
   colorBoardElement(state: BoardStore, { x, y, val }: BoardCoordinates) {
@@ -194,6 +307,43 @@ const mutations = {
     board[y].val[x].val = val;
     Vue.set(state, 'board', board);
   },
+
+  solidifyAndRenewTetraminos(state: BoardStore, {next, tetraminosToSolidify}: SolidifyRenewInterface) {
+    console.log("solidify");
+    const board = state.board;
+
+    const originalTetraminos: BoardCoordinates = {
+      x: Math.abs(getters.getBoardWidth(state) / 2),
+      y: 0,
+      val: BoardElementValues.TETRAMINOS,
+    };
+
+    R.map((cord: BoardCoordinates) => {
+      board[cord.y].val[cord.x].val = BoardElementValues.FILLED;
+    }, tetraminosToSolidify);
+
+    Vue.set(state, 'board', board);
+    Vue.set(state, 'currentTetraminos', state.nextTetraminos[0]);
+    Vue.set(state, 'currentTetraminosCoordinates', originalTetraminos);
+    Vue.set(state, 'currentTetraminosAngle', tetraminosAngle._0);
+    Vue.set(state, 'nextTetraminos', [next]);
+  },
+
+  updateTetraminos(state: BoardStore, {tetraminosToClear, tetraminosToPrint, currentTetraminosCoordinates}: UpdateTetraminosInterface) {
+    console.log("Update Tetraminos", currentTetraminosCoordinates.y);
+    const board = state.board;
+
+    R.map((cord: BoardCoordinates) => {
+      board[cord.y].val[cord.x].val = BoardElementValues.EMPTY;
+    }, tetraminosToClear);
+
+    R.map((cord: BoardCoordinates) => {
+      board[cord.y].val[cord.x].val = BoardElementValues.TETRAMINOS;
+    }, tetraminosToPrint);
+
+    Vue.set(state, 'board', board);
+    Vue.set(state, 'currentTetraminosCoordinates', currentTetraminosCoordinates);
+  }
 };
 
 export default {
