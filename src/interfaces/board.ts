@@ -2,16 +2,16 @@ import {Commit, Dispatch} from "vuex";
 import {Tetraminos} from "@/interfaces/tetraminos";
 
 export enum tetraminosAngle {
-    "_0" = 0,
-    "_90",
-    "_180",
-    "_270",
+    "_0" = "_0",
+    "_90" = "_90",
+    "_180" = "_180",
+    "_270" = "_270",
 }
 
 export enum BoardElementValues {
-    TETRAMINOS = 0,
-    FILLED,
-    EMPTY,
+    TETRAMINOS = "TETRAMINOS",
+    FILLED = "FILLED",
+    EMPTY = "EMPTY",
 }
 
 export interface BoardElement {

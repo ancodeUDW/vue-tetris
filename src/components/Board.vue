@@ -16,7 +16,7 @@
         </div>
 
         <button
-                @click="inputTetraminos"
+                @click="rotateTetraminos"
         >
             Tetraminos
         </button>
@@ -48,6 +48,9 @@
 
         @boardModule.Action('inputTetraminos')
         inputTetraminos!: () => void;
+
+        @boardModule.Action('rotateTetraminos')
+        rotateTetraminos!: () => void;
 
         @boardModule.Action('colorBoardElement')
         colorBoardElement!: ({ x, y, val}: BoardCoordinates) => void;

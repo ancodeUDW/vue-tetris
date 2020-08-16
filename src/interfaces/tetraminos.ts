@@ -2,14 +2,38 @@ import {BoardCoordinates, BoardElementValues, tetraminosAngle} from "@/interface
 
 
 export interface TetraminosAngleMultInterface {
-    [name: string ]: BoardCoordinates;
+    [name: string ]: (blockRelativeCord: BoardCoordinates) => BoardCoordinates;
 }
 
-export const tetraminosAngleMultiplier: TetraminosAngleMultInterface = {
-    [tetraminosAngle._0]: {x: 1, y: 1, val: BoardElementValues.TETRAMINOS},
-    [tetraminosAngle._90]: {x: -1, y: 1, val: BoardElementValues.TETRAMINOS},
-    [tetraminosAngle._180]: {x: -1, y: -1, val: BoardElementValues.TETRAMINOS},
-    [tetraminosAngle._270]: {x: 1, y: -1, val: BoardElementValues.TETRAMINOS},
+export const tetraminosAngleFunction: TetraminosAngleMultInterface = {
+    [tetraminosAngle._0]: (blockRelativeCord: BoardCoordinates): BoardCoordinates => {
+        return {
+            x: - blockRelativeCord.y,
+            y: + blockRelativeCord.x,
+            val: BoardElementValues.TETRAMINOS
+        }
+    },
+    [tetraminosAngle._90]:  (blockRelativeCord: BoardCoordinates): BoardCoordinates => {
+        return {
+            x: - blockRelativeCord.x,
+            y: - blockRelativeCord.y,
+            val: BoardElementValues.TETRAMINOS
+        }
+    },
+    [tetraminosAngle._180]:  (blockRelativeCord: BoardCoordinates): BoardCoordinates => {
+        return {
+            x: + blockRelativeCord.y,
+            y: - blockRelativeCord.x,
+            val: BoardElementValues.TETRAMINOS
+        }
+    },
+    [tetraminosAngle._270]:  (blockRelativeCord: BoardCoordinates): BoardCoordinates => {
+        return {
+            x: - blockRelativeCord.y,
+            y: + blockRelativeCord.x,
+            val: BoardElementValues.TETRAMINOS
+        }
+    },
 };
 
 // A tetraminos is defined by 4 squares. The first one is implicit

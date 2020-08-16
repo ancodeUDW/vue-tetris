@@ -25,23 +25,8 @@ export const isBottomCollision = (state: BoardStore, arrayOfCoordinates: BoardCo
     // we should filter the coordinates that belong to a tetraminos
     const boardHeight = getBoardHeight(state);
     const isNotEmpty = (cord: BoardCoordinates) => {
-
-        console.log("is bottom colision",
-            {
-                yFactor: cord.y >= boardHeight,
-                y: cord.y,
-                boardHeight,
-                // val: getBoardElement(state, cord.y, cord.x).val
-            }
-        );
-
-
-        const res = cord.y >= boardHeight || getBoardElement(state, cord.y, cord.x).val
-        === BoardElementValues.FILLED;
-
-
-
-        return res;
+        return cord.y >= boardHeight || getBoardElement(state, cord.y, cord.x).val
+                                    === BoardElementValues.FILLED;
     };
     return R.any(isNotEmpty , arrayOfCoordinates);
 };
